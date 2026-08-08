@@ -48,9 +48,6 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
-
-var app = builder.Build();
-
 // Agregar política de CORS
 builder.Services.AddCors(options =>
 {
@@ -64,6 +61,10 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+
+var app = builder.Build();
+
+
 
 using (var scope = app.Services.CreateScope())
 {
