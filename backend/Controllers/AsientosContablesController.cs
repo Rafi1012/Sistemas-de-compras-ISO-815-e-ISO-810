@@ -22,7 +22,7 @@ public class AsientosContablesController : ControllerBase
     }
 
     private static AsientoContableDto ToDto(AsientoContable a) => new(
-        a.Id, a.Descripcion, a.TipoInventarioId, a.CuentaContable, a.TipoMovimiento,
+        a.Id, a.Descripcion, a.CuentaDebitoId, a.CuentaCreditoId,
         a.FechaAsiento, a.MontoAsiento, a.Estado, a.OrdenCompraNumero, a.FechaEnvio, a.MensajeError);
 
     [HttpGet]
