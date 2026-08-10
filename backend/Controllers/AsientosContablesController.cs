@@ -52,12 +52,43 @@ public class AsientosContablesController : ControllerBase
         var asiento = await _context.AsientosContables.FirstOrDefaultAsync(a => a.Id == id);
         if (asiento is null) return NotFound();
 
-        var (success, error) = await _contabilidadClient.EnviarAsientoAsync(asiento);
-        asiento.Estado = success ? EstadoAsientoContable.Enviado : EstadoAsientoContable.Error;
-        asiento.FechaEnvio = DateTime.UtcNow;
-        asiento.MensajeError = error;
+        // El WS externo de Render puede tardar hasta 50s en despertar.
+        // Esto causa un Error 504 Gateway Timeout en proxies (como AWS / Nginx) 
+        // cuyo timeout máximo suele ser de 30s.
+        // Solución: Ejecutar el envío en segundo plano (Fire-and-forget)
+        
+        var services = HttpContext.RequestServices;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = services.CreateScope();
+                var scopedContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var scopedClient = scope.ServiceProvider.GetRequiredService<IContabilidadClient>();
+
+                var scopedAsiento = await scopedContext.AsientosContables.FindAsync(id);
+                if (scopedAsiento == null) return;
+
+                var (success, error) = await scopedClient.EnviarAsientoAsync(scopedAsiento);
+                
+                scopedAsiento.Estado = success ? EstadoAsientoContable.Enviado : EstadoAsientoContable.Error;
+                scopedAsiento.FechaEnvio = DateTime.UtcNow;
+                scopedAsiento.MensajeError = error;
+                
+                await scopedContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Manejo de errores en segundo plano
+                Console.WriteLine($"Error en proceso en segundo plano: {ex.Message}");
+            }
+        });
+
+        // Respondemos inmediatamente al frontend que la solicitud fue aceptada
+        asiento.Estado = EstadoAsientoContable.Pendiente;
+        asiento.MensajeError = "Enviando en segundo plano (esperando a Render)...";
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(asiento));
+        return Accepted(ToDto(asiento));
     }
 }
