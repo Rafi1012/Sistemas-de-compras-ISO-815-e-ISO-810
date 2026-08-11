@@ -13,17 +13,19 @@ namespace SistemaDeCompras.Controllers;
 public class AsientosContablesController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly IContabilidadClient _contabilidadClient;
+    private readonly IBackgroundTaskQueue _backgroundTaskQueue;
+    private readonly ILogger<AsientosContablesController> _logger;
 
-    public AsientosContablesController(AppDbContext context, IContabilidadClient contabilidadClient)
+    public AsientosContablesController(AppDbContext context, IBackgroundTaskQueue backgroundTaskQueue, ILogger<AsientosContablesController> logger)
     {
         _context = context;
-        _contabilidadClient = contabilidadClient;
+        _backgroundTaskQueue = backgroundTaskQueue;
+        _logger = logger;
     }
 
     private static AsientoContableDto ToDto(AsientoContable a) => new(
         a.Id, a.Descripcion, a.CuentaDebitoId, a.CuentaCreditoId,
-        a.FechaAsiento, a.MontoAsiento, a.Estado, a.OrdenCompraNumero, a.FechaEnvio, a.MensajeError);
+        a.FechaAsiento, a.MontoAsiento, a.Estado, a.OrdenCompraNumero, a.FechaEnvio, a.MensajeError, a.Asiento);
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AsientoContableDto>>> GetAll(
@@ -53,41 +55,41 @@ public class AsientosContablesController : ControllerBase
         if (asiento is null) return NotFound();
 
         // El WS externo de Render puede tardar hasta 50s en despertar.
-        // Esto causa un Error 504 Gateway Timeout en proxies (como AWS / Nginx) 
+        // Esto causa un Error 504 Gateway Timeout en proxies (como AWS / Nginx)
         // cuyo timeout máximo suele ser de 30s.
-        // Solución: Ejecutar el envío en segundo plano (Fire-and-forget)
-        
-        var services = HttpContext.RequestServices;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                using var scope = services.CreateScope();
-                var scopedContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                var scopedClient = scope.ServiceProvider.GetRequiredService<IContabilidadClient>();
+        // Solución: aceptar la solicitud ya, y encolar el envío para que lo procese
+        // QueuedHostedService en segundo plano (con seguimiento del host, no fire-and-forget).
 
-                var scopedAsiento = await scopedContext.AsientosContables.FindAsync(id);
-                if (scopedAsiento == null) return;
-
-                var (success, error) = await scopedClient.EnviarAsientoAsync(scopedAsiento);
-                
-                scopedAsiento.Estado = success ? EstadoAsientoContable.Enviado : EstadoAsientoContable.Error;
-                scopedAsiento.FechaEnvio = DateTime.UtcNow;
-                scopedAsiento.MensajeError = error;
-                
-                await scopedContext.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                // Manejo de errores en segundo plano
-                Console.WriteLine($"Error en proceso en segundo plano: {ex.Message}");
-            }
-        });
-
-        // Respondemos inmediatamente al frontend que la solicitud fue aceptada
+        // Persistimos el estado "enviando" ANTES de encolar el trabajo, para que la
+        // única escritura posterior sobre este asiento sea la del propio trabajo en segundo plano.
         asiento.Estado = EstadoAsientoContable.Pendiente;
         asiento.MensajeError = "Enviando en segundo plano (esperando a Render)...";
         await _context.SaveChangesAsync();
+
+        _backgroundTaskQueue.QueueBackgroundWorkItem(async (services, ct) =>
+        {
+            try
+            {
+                var scopedContext = services.GetRequiredService<AppDbContext>();
+                var scopedClient = services.GetRequiredService<IContabilidadClient>();
+
+                var scopedAsiento = await scopedContext.AsientosContables.FindAsync(new object[] { id }, ct);
+                if (scopedAsiento is null) return;
+
+                var (success, error, numeroAsiento) = await scopedClient.EnviarAsientoAsync(scopedAsiento, ct);
+
+                scopedAsiento.Estado = success ? EstadoAsientoContable.Enviado : EstadoAsientoContable.Error;
+                scopedAsiento.FechaEnvio = DateTime.UtcNow;
+                scopedAsiento.MensajeError = error;
+                scopedAsiento.Asiento = numeroAsiento;
+
+                await scopedContext.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reenviando el asiento {Id} en segundo plano", id);
+            }
+        });
 
         return Accepted(ToDto(asiento));
     }

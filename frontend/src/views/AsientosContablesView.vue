@@ -42,9 +42,10 @@ const formatCurrency = (val) => {
         <thead>
           <tr class="bg-gray-50 text-gray-600 text-sm border-b border-gray-100">
             <th class="py-3 px-6 font-semibold">ID</th>
+            <th class="py-3 px-6 font-semibold">No. Asiento</th>
             <th class="py-3 px-6 font-semibold">Descripción</th>
-            <th class="py-3 px-6 font-semibold">Cuenta</th>
-            <th class="py-3 px-6 font-semibold">Tipo</th>
+            <th class="py-3 px-6 font-semibold">Cuenta Débito</th>
+            <th class="py-3 px-6 font-semibold">Cuenta Crédito</th>
             <th class="py-3 px-6 font-semibold">Monto</th>
             <th class="py-3 px-6 font-semibold">OC No.</th>
             <th class="py-3 px-6 font-semibold text-center">Estado</th>
@@ -54,11 +55,10 @@ const formatCurrency = (val) => {
         <tbody>
           <tr v-for="item in asientos" :key="item.id" class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
             <td class="py-3 px-6 font-medium text-gray-800">{{ item.id }}</td>
+            <td class="py-3 px-6 text-gray-600">{{ item.asiento ?? '—' }}</td>
             <td class="py-3 px-6 text-gray-600">{{ item.descripcion }}</td>
-            <td class="py-3 px-6 text-gray-600">{{ item.cuentaContable }}</td>
-            <td class="py-3 px-6 text-gray-600">
-              <span class="font-bold">{{ item.tipoMovimiento }}</span>
-            </td>
+            <td class="py-3 px-6 text-gray-600">{{ item.cuentaDebitoId }}</td>
+            <td class="py-3 px-6 text-gray-600">{{ item.cuentaCreditoId }}</td>
             <td class="py-3 px-6 text-gray-600 font-medium">{{ formatCurrency(item.montoAsiento) }}</td>
             <td class="py-3 px-6 text-gray-600">
               <span v-if="item.ordenCompraNumero">OC-{{ item.ordenCompraNumero }}</span>
@@ -79,7 +79,7 @@ const formatCurrency = (val) => {
               </button>
             </td>
           </tr>
-          <tr v-if="asientos.length === 0"><td colspan="8" class="py-8 text-center text-gray-500">No hay asientos contables registrados.</td></tr>
+          <tr v-if="asientos.length === 0"><td colspan="9" class="py-8 text-center text-gray-500">No hay asientos contables registrados.</td></tr>
         </tbody>
       </table>
     </div>

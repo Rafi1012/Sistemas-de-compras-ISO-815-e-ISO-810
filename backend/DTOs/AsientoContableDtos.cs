@@ -12,4 +12,5 @@ public record AsientoContableDto(
     EstadoAsientoContable Estado,
     int? OrdenCompraNumero,
     DateTime? FechaEnvio,
-    string? MensajeError);
+    string? MensajeError,
+    int? Asiento);

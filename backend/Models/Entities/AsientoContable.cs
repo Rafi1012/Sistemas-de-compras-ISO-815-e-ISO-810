@@ -19,4 +19,5 @@ public class AsientoContable
 
     public DateTime? FechaEnvio { get; set; }
     public string? MensajeError { get; set; }
+    public int? Asiento { get; set; }
 }
