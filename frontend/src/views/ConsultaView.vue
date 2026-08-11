@@ -36,6 +36,11 @@ onMounted(async () => {
 })
 
 const buscar = async () => {
+  if (filtros.value.fechaDesde && filtros.value.fechaHasta && filtros.value.fechaDesde > filtros.value.fechaHasta) {
+    alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".')
+    return
+  }
+
   isLoading.value = true
   try {
     // Limpiamos los filtros vacios
@@ -100,11 +105,11 @@ const exportCSV = () => {
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-wrap gap-4 items-end">
       <div class="flex-1 min-w-[150px]">
         <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Desde</label>
-        <input v-model="filtros.fechaDesde" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+        <input v-model="filtros.fechaDesde" type="date" :max="filtros.fechaHasta || undefined" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
       </div>
       <div class="flex-1 min-w-[150px]">
         <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Hasta</label>
-        <input v-model="filtros.fechaHasta" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+        <input v-model="filtros.fechaHasta" type="date" :min="filtros.fechaDesde || undefined" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
       </div>
       <div class="flex-1 min-w-[180px]">
         <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
