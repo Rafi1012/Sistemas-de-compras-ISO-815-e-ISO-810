@@ -48,6 +48,19 @@ const openModal = (item = null) => {
 
 const closeModal = () => showModal.value = false
 
+const bloquearSignoMenos = (event) => {
+  if (event.key === '-') {
+    event.preventDefault()
+  }
+}
+
+const bloquearNegativo = (campo) => {
+  const valor = Number(form.value[campo])
+  if (!Number.isNaN(valor) && valor < 0) {
+    form.value[campo] = 0
+  }
+}
+
 const save = async () => {
   if (form.value.existencia <= 0) {
     alert("La existencia debe ser mayor a 0.")
@@ -166,7 +179,7 @@ const getUnidadNombre = (id) => {
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Existencia</label>
-              <input v-model="form.existencia" type="number" min="0.01" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+              <input v-model="form.existencia" @input="bloquearNegativo('existencia')" @keydown="bloquearSignoMenos" type="number" min="0.01" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
