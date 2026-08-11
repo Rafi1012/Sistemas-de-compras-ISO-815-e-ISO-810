@@ -149,6 +149,19 @@ const sendAsiento = async (orden) => {
   }
 }
 
+const bloquearSignoMenos = (event) => {
+  if (event.key === '-') {
+    event.preventDefault()
+  }
+}
+
+const bloquearNegativo = (campo) => {
+  const valor = Number(form.value[campo])
+  if (!Number.isNaN(valor) && valor < 0) {
+    form.value[campo] = 0
+  }
+}
+
 const ajustarValor = (campo, delta, min = 0.01) => {
   const actual = Number(form.value[campo]) || 0
   form.value[campo] = Math.max(min, actual + delta)
@@ -308,7 +321,7 @@ const formatCurrency = (val) => {
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
               <div class="relative">
-                <input v-model="form.cantidad" type="number" min="0.01" step="0.01" required class="w-full pl-4 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                <input v-model="form.cantidad" @input="bloquearNegativo('cantidad')" @keydown="bloquearSignoMenos" type="number" min="0.01" step="0.01" required class="w-full pl-4 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                 <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col">
                   <button type="button" tabindex="-1" @click="ajustarValor('cantidad', 1)" class="text-gray-400 hover:text-emerald-600 leading-none"><ChevronUp class="w-4 h-4" /></button>
                   <button type="button" tabindex="-1" @click="ajustarValor('cantidad', -1)" class="text-gray-400 hover:text-emerald-600 leading-none"><ChevronDown class="w-4 h-4" /></button>
@@ -318,7 +331,7 @@ const formatCurrency = (val) => {
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Costo Unitario</label>
               <div class="relative">
-                <input v-model="form.costoUnitario" type="number" min="0.01" step="0.01" required class="w-full pl-4 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                <input v-model="form.costoUnitario" @input="bloquearNegativo('costoUnitario')" @keydown="bloquearSignoMenos" type="number" min="0.01" step="0.01" required class="w-full pl-4 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                 <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col">
                   <button type="button" tabindex="-1" @click="ajustarValor('costoUnitario', 1)" class="text-gray-400 hover:text-emerald-600 leading-none"><ChevronUp class="w-4 h-4" /></button>
                   <button type="button" tabindex="-1" @click="ajustarValor('costoUnitario', -1)" class="text-gray-400 hover:text-emerald-600 leading-none"><ChevronDown class="w-4 h-4" /></button>
