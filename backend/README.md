@@ -4,7 +4,7 @@ ASP.NET Core 8 Web API. SQL Server via EF Core.
 
 ## Base de datos
 
-El proyecto usa **SQL Server LocalDB** por defecto (`appsettings.json`). Al ejecutar `dotnet run`, la aplicacion aplica automaticamente las migraciones y crea datos iniciales (departamentos, unidades de medida, proveedores, empleados y articulos de ejemplo) — no hace falta correr `dotnet ef database update` a mano.
+El proyect usa **SQL Server LocalDB** por defecto (`appsettings.json`). Al ejecutar `dotnet run`, la aplicacion aplica automaticamente las migraciones y crea datos iniciales (departamentos, unidades de medida, proveedores, empleados y articulos de ejemplo) — no hace falta correr `dotnet ef database update` a mano.
 
 Requisitos: tener **SQL Server Express LocalDB** instalado (viene con el workload "ASP.NET y desarrollo web" del instalador de Visual Studio, o se puede instalar por separado desde la pagina de descargas de SQL Server Express).
 

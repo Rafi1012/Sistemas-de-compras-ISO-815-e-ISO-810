@@ -38,6 +38,10 @@ builder.Services.AddHttpClient<IContabilidadClient, ContabilidadClient>((sp, cli
 
 builder.Services.AddScoped<IOrdenCompraService, OrdenCompraService>();
 
+builder.Services.AddSingleton<BackgroundTaskQueue>();
+builder.Services.AddSingleton<IBackgroundTaskQueue>(sp => sp.GetRequiredService<BackgroundTaskQueue>());
+builder.Services.AddHostedService<QueuedHostedService>();
+
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
@@ -48,12 +52,12 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
-// Agregar política de CORS
+// Agregar polï¿½tica de CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // En desarrollo permite localhost, en producción permite la URL que le des en AWS
+        // En desarrollo permite localhost, en producciï¿½n permite la URL que le des en AWS
         var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
 
         policy.WithOrigins(frontendUrl)

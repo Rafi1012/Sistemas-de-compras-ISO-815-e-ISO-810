@@ -4,5 +4,5 @@ namespace SistemaDeCompras.Services;
 
 public interface IContabilidadClient
 {
-    Task<(bool Success, string? Error)> EnviarAsientoAsync(AsientoContable asiento, CancellationToken ct = default);
+    Task<(bool Success, string? Error, int? NumeroAsiento)> EnviarAsientoAsync(AsientoContable asiento, CancellationToken ct = default);
 }
