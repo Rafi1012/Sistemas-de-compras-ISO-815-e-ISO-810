@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<OrdenCompra> OrdenesCompra => Set<OrdenCompra>();
     public DbSet<OrdenCompraDetalle> DetallesOrdenCompra => Set<OrdenCompraDetalle>();
     public DbSet<AsientoContable> AsientosContables => Set<AsientoContable>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,6 +105,14 @@ public class AppDbContext : DbContext
                 .WithMany(o => o.AsientosContables)
                 .HasForeignKey(a => a.OrdenCompraNumero)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Usuario>(e =>
+        {
+            e.HasIndex(u => u.NombreUsuario).IsUnique();
+            e.HasIndex(u => u.Email).IsUnique();
+            e.Property(u => u.NombreUsuario).HasMaxLength(50);
+            e.Property(u => u.Email).HasMaxLength(150);
         });
 
         SeedData(modelBuilder);

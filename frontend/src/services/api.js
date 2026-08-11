@@ -10,11 +10,28 @@ const api = axios.create({
   }
 })
 
-// Interceptores para manejo de errores o tokens si se requiere en el futuro
+// Adjunta el token JWT (si existe) a cada solicitud
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Si el token es inválido/expiró, limpia la sesión y regresa a login
 api.interceptors.response.use(
   response => response,
   error => {
     console.error('API Error:', error)
+    const esRutaAuth = error.config?.url?.includes('/auth/')
+    if (error.response?.status === 401 && !esRutaAuth) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('usuario')
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
     return Promise.reject(error)
   }
 )

@@ -1,10 +1,24 @@
 <script setup>
-import { RouterView, RouterLink } from 'vue-router'
-import { LayoutDashboard, Users, Scale, Factory, Package, ShoppingCart, Search } from '@lucide/vue'
+import { computed } from 'vue'
+import { RouterView, RouterLink, useRoute, useRouter } from 'vue-router'
+import { LayoutDashboard, Users, Scale, Factory, Package, ShoppingCart, Search, LogOut } from '@lucide/vue'
+import { useAuthStore } from './stores/authStore'
+
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+
+const isPublicPage = computed(() => route.meta.public)
+
+const logout = () => {
+  authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <template>
-  <div class="flex h-screen bg-gray-100 text-gray-900 font-sans">
+  <RouterView v-if="isPublicPage" />
+  <div v-else class="flex h-screen bg-gray-100 text-gray-900 font-sans">
     <!-- Sidebar -->
     <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl">
       <div class="p-6 text-center border-b border-slate-700">
@@ -49,9 +63,13 @@ import { LayoutDashboard, Users, Scale, Factory, Package, ShoppingCart, Search }
       <header class="h-16 bg-white border-b border-gray-200 flex items-center px-8 justify-between shadow-sm">
         <h2 class="text-lg font-semibold text-gray-700">Sistema de Gestión de Compras</h2>
         <div class="flex items-center gap-4">
+          <span class="text-sm text-gray-600">{{ authStore.usuario?.nombreUsuario }}</span>
           <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
-            U
+            {{ authStore.usuario?.nombreUsuario?.charAt(0).toUpperCase() || 'U' }}
           </div>
+          <button @click="logout" title="Cerrar sesión" class="text-gray-400 hover:text-red-600 transition-colors">
+            <LogOut class="w-5 h-5" />
+          </button>
         </div>
       </header>
       
