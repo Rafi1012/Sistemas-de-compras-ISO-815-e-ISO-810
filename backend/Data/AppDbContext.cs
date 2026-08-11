@@ -99,7 +99,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AsientoContable>(e =>
         {
             e.Property(a => a.MontoAsiento).HasColumnType("decimal(18,2)");
-            e.Property(a => a.CuentaContable).HasMaxLength(30);
 
             e.HasOne(a => a.OrdenCompra)
                 .WithMany(o => o.AsientosContables)

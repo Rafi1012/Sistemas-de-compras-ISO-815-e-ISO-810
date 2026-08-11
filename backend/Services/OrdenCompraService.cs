@@ -8,18 +8,17 @@ namespace SistemaDeCompras.Services;
 
 public class OrdenCompraService : IOrdenCompraService
 {
-    private const string CuentaInventario = "1105";
-    private const string CuentaCuentasPorPagar = "2101";
-
     private readonly AppDbContext _context;
     private readonly IContabilidadClient _contabilidadClient;
     private readonly ILogger<OrdenCompraService> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
-    public OrdenCompraService(AppDbContext context, IContabilidadClient contabilidadClient, ILogger<OrdenCompraService> logger)
+    public OrdenCompraService(AppDbContext context, IContabilidadClient contabilidadClient, ILogger<OrdenCompraService> logger, IServiceProvider serviceProvider)
     {
         _context = context;
         _contabilidadClient = contabilidadClient;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     private static OrdenCompraDto ToDto(OrdenCompra o) => new(
@@ -166,51 +165,59 @@ public class OrdenCompraService : IOrdenCompraService
 
         orden.Estado = EstadoOrdenCompra.Recibida;
 
-        var asientos = new List<AsientoContable>();
         var fecha = DateTime.UtcNow;
 
         foreach (var linea in orden.Detalles)
         {
             linea.Articulo!.Existencia += linea.Cantidad;
-
-            asientos.Add(new AsientoContable
-            {
-                Descripcion = $"Recepcion OC {orden.Numero} - {linea.Articulo.Descripcion}",
-                TipoInventarioId = linea.ArticuloId!.Value,
-                CuentaContable = CuentaInventario,
-                TipoMovimiento = TipoMovimientoContable.Debito,
-                FechaAsiento = fecha,
-                MontoAsiento = linea.Subtotal,
-                Estado = EstadoAsientoContable.Pendiente,
-                OrdenCompraNumero = orden.Numero
-            });
         }
 
         var total = orden.Detalles.Sum(d => d.Subtotal);
-        asientos.Add(new AsientoContable
+        var asiento = new AsientoContable
         {
-            Descripcion = $"Cuentas por pagar OC {orden.Numero}",
-            TipoInventarioId = 0,
-            CuentaContable = CuentaCuentasPorPagar,
-            TipoMovimiento = TipoMovimientoContable.Credito,
+            Descripcion = $"Recepcion OC {orden.Numero}",
+            CuentaDebitoId = 1, // Caja General / Inventario
+            CuentaCreditoId = 2, // Cuentas por pagar
             FechaAsiento = fecha,
             MontoAsiento = total,
             Estado = EstadoAsientoContable.Pendiente,
             OrdenCompraNumero = orden.Numero
-        });
+        };
 
-        _context.AsientosContables.AddRange(asientos);
+        _context.AsientosContables.Add(asiento);
         await _context.SaveChangesAsync();
 
-        foreach (var asiento in asientos)
+        // El WS externo de Render puede tardar hasta 50s en despertar.
+        // Lo enviamos en segundo plano para evitar timeouts en AWS
+        var asientoId = asiento.Id;
+        _ = Task.Run(async () =>
         {
-            var (success, error) = await _contabilidadClient.EnviarAsientoAsync(asiento);
-            asiento.Estado = success ? EstadoAsientoContable.Enviado : EstadoAsientoContable.Error;
-            asiento.FechaEnvio = DateTime.UtcNow;
-            asiento.MensajeError = error;
-        }
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var scopedContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var scopedClient = scope.ServiceProvider.GetRequiredService<IContabilidadClient>();
 
+                var scopedAsiento = await scopedContext.AsientosContables.FindAsync(asientoId);
+                if (scopedAsiento == null) return;
+
+                var (success, error) = await scopedClient.EnviarAsientoAsync(scopedAsiento);
+                
+                scopedAsiento.Estado = success ? EstadoAsientoContable.Enviado : EstadoAsientoContable.Error;
+                scopedAsiento.FechaEnvio = DateTime.UtcNow;
+                scopedAsiento.MensajeError = error;
+                
+                await scopedContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error enviando asiento en segundo plano para la OC {Numero}", numero);
+            }
+        });
+        
+        asiento.MensajeError = "Enviando en segundo plano (esperando a Render)...";
         await _context.SaveChangesAsync();
+
 
         return (await ObtenerPorNumeroAsync(numero))!;
     }

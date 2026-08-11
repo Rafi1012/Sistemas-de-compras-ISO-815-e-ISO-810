@@ -48,8 +48,23 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+// Agregar política de CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        // En desarrollo permite localhost, en producción permite la URL que le des en AWS
+        var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
+
+        policy.WithOrigins(frontendUrl)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
+
+
 
 using (var scope = app.Services.CreateScope())
 {
@@ -66,10 +81,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+
 app.UseCors(AngularCorsPolicy);
+
+app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Run($"http://0.0.0.0:{port}");
 
 app.Run();

@@ -19,15 +19,14 @@ public class ContabilidadClient : IContabilidadClient
 
     public async Task<(bool Success, string? Error)> EnviarAsientoAsync(AsientoContable asiento, CancellationToken ct = default)
     {
-        var payload = new AsientoContableWsPayload(
-            asiento.Id,
-            asiento.Descripcion,
-            asiento.TipoInventarioId,
-            asiento.CuentaContable,
-            asiento.TipoMovimiento == TipoMovimientoContable.Debito ? "DB" : "CR",
-            asiento.FechaAsiento,
-            asiento.MontoAsiento,
-            asiento.Estado.ToString());
+        var payload = new AsientoContableWsPayload
+        {
+            AuxiliarId = 5,
+            CuentaDebitoId = asiento.CuentaDebitoId,
+            CuentaCreditoId = asiento.CuentaCreditoId,
+            Descripcion = asiento.Descripcion,
+            Monto = asiento.MontoAsiento
+        };
 
         try
         {

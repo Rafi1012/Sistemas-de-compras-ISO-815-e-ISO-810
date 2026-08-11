@@ -6,9 +6,10 @@ public class AsientoContable
 {
     public int Id { get; set; }
     public string Descripcion { get; set; } = string.Empty;
-    public int TipoInventarioId { get; set; }
-    public string CuentaContable { get; set; } = string.Empty;
-    public TipoMovimientoContable TipoMovimiento { get; set; }
+    
+    public int CuentaDebitoId { get; set; }
+    public int CuentaCreditoId { get; set; }
+
     public DateTime FechaAsiento { get; set; }
     public decimal MontoAsiento { get; set; }
     public EstadoAsientoContable Estado { get; set; } = EstadoAsientoContable.Pendiente;
